@@ -1,4 +1,7 @@
-# Intro
+# Testing Python's Experimental JIT and GIL-free Implementation
+
+
+## Intro
 The beta preview of Python 3.13, Python 3.13.0b1, was released in May 8, 2024. It introduced interesting experimental features including Just-In-Time compilation and the removal of the Global Interpreter Lock (GIL). See [PEP 744](https://peps.python.org/pep-0744/) and [PEP 703](https://peps.python.org/pep-0703/) for more information. 
 
 These features are still being heavily developed, and therefore are disabled by default. To enable, you would have to compile CPython using `--enable-experimental-jit` or `--disable-gil` flags. 
@@ -11,7 +14,7 @@ This article intends to test the compatibility and the performance of these expe
 **Python 3.13 is still under heavy development. Content in this article may become out-dated, inaccurate, and/or misleading at any time.**
 
 
-# Background 
+## Background 
 
 #### Why Global Interpreter Lock Exists in the first place?
 
@@ -34,7 +37,7 @@ Python is one of the least performant languages. One of the reasons it is so slo
 Many other interpreted yet performant language take advantage of the just-in-time compilation technique. Instead of simply interpreting the bytecode, a just-in-time compiler compiles the bytecode into machine code at run time to speed up execution. However, this causes a noticeable delay at program startup. As a matter of fact, just-in-time compiling an entire program is rare. Most just-in-time compilers would initially interpret the code, later compile the frequently executed code segments into machine code. This technique is called tracing just-in-time compilation. The experimental JIT compiler in CPython 3.13 uses this technique. 
 
 
-# Test Setup
+## Test Setup
 | Hardware  |                   |
 | --------: |:------------------|
 | Processor | AMD Threadripper 3970X 32 Core SMT Disabled|
@@ -67,7 +70,7 @@ I compiled 4 CPython interpreters using different build options to conduct test.
 
 Due to [a small bug](https://github.com/python/cpython/pull/118959) that caused build to fail when combining `--disable-gil ` with `--enable-experimental-jit` options, the test versions are compiled at commit `2404cd9` instead of  the official pre-release at `2268289`.
 
-# Compatibility
+## Compatibility Testings
 
 There have been [significant changes](https://discuss.python.org/t/c-api-my-plan-to-clarify-private-vs-public-functions-in-python-3-13/30131) in the C-API functions in 3.13, many third-party libraries that rely on C-extension may break. 
 I tested a handful of popular third party libraries. [This page](http://pyreadiness.org/3.13/) tracks the support status of Python packages on PyPI. 
@@ -108,9 +111,9 @@ Based on the results, these operations are still thread-safe with the absence of
 
 
 
-# Performance Testings
+## Performance Testings
 
-## Django Web Server Benchmark
+### Django Web Server Benchmark
 
 In this section, I wrote a trivial Django web server to conduct this test. To simulate real-world applications, the requested page involve database querying (SQLite backend) and template rendering. [Vegeta](https://github.com/tsenart/vegeta) is used to stress test against the web application using 128 workers over a 20-second duration. 
 
@@ -161,7 +164,7 @@ However, I observed a huge performance degradation in GIL free version. In my sp
 This test is to measure the performance scaling factor for multi-threaded workloads when GIL is removed.
 
 
-# An Interesting Discovery
+## An Interesting Discovery
 
 From the AES benchmark results above, I noticed something rather strange. 
 
@@ -181,7 +184,7 @@ An easy workaround is pinning all threads onto one CPU, either by `taskset` comm
 Further research reveled that similar issues have been noticed [as early as 2010](http://www.dabeaz.com/python/UnderstandingGIL.pdf), but did not offer explanation or speculation. 
 [Another article](https://github.com/zpoint/CPython-Internals/blob/master/Interpreter/gil/gil.md) claimed this is due to how GIL was implemented, and that the GIL has been re-implemented in Python 3.2 to address this issue. 
 
-# References
+## References
 
 http://www.dabeaz.com/python/UnderstandingGIL.pdf
 
